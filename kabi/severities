@@ -17,6 +17,10 @@ drivers/scsi/qla2xxx/*		PASS
 net/ceph/*			PASS
 drivers/mfd/tps65218		PASS
 sound/hda/*			PASS
+# 4.1.26
+drivers/net/wireless/rtlwifi/*	PASS
+drivers/net/can/can-dev		PASS
+drivers/mtd/ubi/ubi		PASS
 
 inet_twsk_schedule		PASS
 crypto_*			PASS
