@@ -14,26 +14,26 @@ Therefore this patch introduces a global lock.
 
 Signed-off-by: Oliver Neukum <ONeukum@suse.com>
 ---
- drivers/usb/core/hcd.c  | 12 +-----------
- drivers/usb/core/hub.c  | 10 ++++++----
- include/linux/usb.h     |  3 ++-
- include/linux/usb/hcd.h |  1 -
- 4 files changed, 9 insertions(+), 17 deletions(-)
+ drivers/usb/core/hcd.c  |   13 +------------
+ drivers/usb/core/hub.c  |   10 ++++++----
+ include/linux/usb.h     |    3 ++-
+ include/linux/usb/hcd.h |    1 -
+ 4 files changed, 9 insertions(+), 18 deletions(-)
 
-diff --git a/drivers/usb/core/hcd.c b/drivers/usb/core/hcd.c
-index dd9aa46..6be8a7a 100644
 --- a/drivers/usb/core/hcd.c
 +++ b/drivers/usb/core/hcd.c
-@@ -916,7 +916,7 @@ static void usb_bus_init (struct usb_bus *bus)
+@@ -915,9 +915,8 @@ static void usb_bus_init (struct usb_bus
+ 	bus->bandwidth_allocated = 0;
  	bus->bandwidth_int_reqs  = 0;
  	bus->bandwidth_isoc_reqs = 0;
- 	INIT_LIST_HEAD (&bus->bus_list);
 -	mutex_init(&bus->devnum_next_mutex);
+-
+ 	INIT_LIST_HEAD (&bus->bus_list);
 +	mutex_init(&bus->usb_address0_mutex);
  }
  
  /*-------------------------------------------------------------------------*/
-@@ -2445,14 +2445,6 @@ struct usb_hcd *usb_create_shared_hcd(const struct hc_driver *driver,
+@@ -2446,14 +2445,6 @@ struct usb_hcd *usb_create_shared_hcd(co
  		return NULL;
  	}
  	if (primary_hcd == NULL) {
@@ -48,7 +48,7 @@ index dd9aa46..6be8a7a 100644
  		hcd->bandwidth_mutex = kmalloc(sizeof(*hcd->bandwidth_mutex),
  				GFP_KERNEL);
  		if (!hcd->bandwidth_mutex) {
-@@ -2464,7 +2456,6 @@ struct usb_hcd *usb_create_shared_hcd(const struct hc_driver *driver,
+@@ -2465,7 +2456,6 @@ struct usb_hcd *usb_create_shared_hcd(co
  		dev_set_drvdata(dev, hcd);
  	} else {
  		mutex_lock(&usb_port_peer_mutex);
@@ -56,7 +56,7 @@ index dd9aa46..6be8a7a 100644
  		hcd->bandwidth_mutex = primary_hcd->bandwidth_mutex;
  		hcd->primary_hcd = primary_hcd;
  		primary_hcd->primary_hcd = primary_hcd;
-@@ -2532,7 +2523,6 @@ static void hcd_release(struct kref *kref)
+@@ -2533,7 +2523,6 @@ static void hcd_release(struct kref *kre
  
  	mutex_lock(&usb_port_peer_mutex);
  	if (usb_hcd_is_primary_hcd(hcd)) {
@@ -64,11 +64,9 @@ index dd9aa46..6be8a7a 100644
  		kfree(hcd->bandwidth_mutex);
  	}
  	if (hcd->shared_hcd) {
-diff --git a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
-index 718cfd0..428f15f 100644
 --- a/drivers/usb/core/hub.c
 +++ b/drivers/usb/core/hub.c
-@@ -102,6 +102,8 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rwsem);
+@@ -102,6 +102,8 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rws
  static void hub_release(struct kref *kref);
  static int usb_reset_and_verify_device(struct usb_device *udev);
  
@@ -77,7 +75,7 @@ index 718cfd0..428f15f 100644
  static inline char *portspeed(struct usb_hub *hub, int portstatus)
  {
  	if (hub_is_superspeed(hub->hdev))
-@@ -2066,7 +2068,7 @@ static void choose_devnum(struct usb_device *udev)
+@@ -2066,7 +2068,7 @@ static void choose_devnum(struct usb_dev
  	struct usb_bus	*bus = udev->bus;
  
  	/* be safe when more hub events are proceed in parallel */
@@ -86,7 +84,7 @@ index 718cfd0..428f15f 100644
  	if (udev->wusb) {
  		devnum = udev->portnum + 1;
  		BUG_ON(test_bit(devnum, bus->devmap.devicemap));
-@@ -2084,7 +2086,7 @@ static void choose_devnum(struct usb_device *udev)
+@@ -2084,7 +2086,7 @@ static void choose_devnum(struct usb_dev
  		set_bit(devnum, bus->devmap.devicemap);
  		udev->devnum = devnum;
  	}
@@ -95,7 +93,7 @@ index 718cfd0..428f15f 100644
  }
  
  static void release_devnum(struct usb_device *udev)
-@@ -4257,7 +4259,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
+@@ -4257,7 +4259,7 @@ hub_port_init (struct usb_hub *hub, stru
  	if (oldspeed == USB_SPEED_LOW)
  		delay = HUB_LONG_RESET_TIME;
  
@@ -113,8 +111,6 @@ index 718cfd0..428f15f 100644
  	return retval;
  }
  
-diff --git a/include/linux/usb.h b/include/linux/usb.h
-index 95e98d3..7d875cf 100644
 --- a/include/linux/usb.h
 +++ b/include/linux/usb.h
 @@ -367,13 +367,14 @@ struct usb_bus {
@@ -133,8 +129,6 @@ index 95e98d3..7d875cf 100644
  	int bandwidth_allocated;	/* on this bus: how much of the time
  					 * reserved for periodic (intr/iso)
  					 * requests is used, on average?
-diff --git a/include/linux/usb/hcd.h b/include/linux/usb/hcd.h
-index c00c739..68b1e83 100644
 --- a/include/linux/usb/hcd.h
 +++ b/include/linux/usb/hcd.h
 @@ -169,7 +169,6 @@ struct usb_hcd {
@@ -145,6 +139,3 @@ index c00c739..68b1e83 100644
  	struct mutex		*bandwidth_mutex;
  	struct usb_hcd		*shared_hcd;
  	struct usb_hcd		*primary_hcd;
--- 
-2.1.4
-
