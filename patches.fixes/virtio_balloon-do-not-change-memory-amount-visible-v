@@ -1,0 +1,61 @@
+From 997e120843e82609c8d99a9d5714e6cf91e14cbe Mon Sep 17 00:00:00 2001
+From: "Denis V. Lunev" <den@openvz.org>
+Date: Thu, 20 Aug 2015 00:49:49 +0300
+Subject: [PATCH] virtio_balloon: do not change memory amount visible via /proc/meminfo
+Git-commit: 997e120843e82609c8d99a9d5714e6cf91e14cbe
+Patch-mainline: 4.3-rc2
+References: bsc#982238
+
+Balloon device is frequently used as a mean of cooperative memory control
+in between guest and host to manage memory overcommitment. This is the
+typical case for any hosting workload when KVM guest is provided for
+end-user.
+
+Though there is a problem in this setup. The end-user and hosting provider
+have signed SLA agreement in which some amount of memory is guaranted for
+the guest. The good thing is that this memory will be given to the guest
+when the guest will really need it (f.e. with OOM in guest and with
+VIRTIO_BALLOON_F_DEFLATE_ON_OOM configuration flag set). The bad thing
+is that end-user does not know this.
+
+Balloon by default reduce the amount of memory exposed to the end-user
+each time when the page is stolen from guest or returned back by using
+adjust_managed_page_count and thus /proc/meminfo shows reduced amount
+of memory.
+
+Fortunately the solution is simple, we should just avoid to call
+adjust_managed_page_count with VIRTIO_BALLOON_F_DEFLATE_ON_OOM set.
+
+Signed-off-by: Denis V. Lunev <den@openvz.org>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ drivers/virtio/virtio_balloon.c |    8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+--- a/drivers/virtio/virtio_balloon.c
++++ b/drivers/virtio/virtio_balloon.c
+@@ -157,7 +157,9 @@ static void fill_balloon(struct virtio_b
+ 		}
+ 		set_page_pfns(vb->pfns + vb->num_pfns, page);
+ 		vb->num_pages += VIRTIO_BALLOON_PAGES_PER_PAGE;
+-		adjust_managed_page_count(page, -1);
++		if (!virtio_has_feature(vb->vdev,
++					VIRTIO_BALLOON_F_DEFLATE_ON_OOM))
++			adjust_managed_page_count(page, -1);
+ 	}
+ 
+ 	/* Did we get any? */
+@@ -173,7 +175,9 @@ static void release_pages_balloon(struct
+ 	/* Find pfns pointing at start of each page, get pages and free them. */
+ 	for (i = 0; i < vb->num_pfns; i += VIRTIO_BALLOON_PAGES_PER_PAGE) {
+ 		struct page *page = balloon_pfn_to_page(vb->pfns[i]);
+-		adjust_managed_page_count(page, 1);
++		if (!virtio_has_feature(vb->vdev,
++					VIRTIO_BALLOON_F_DEFLATE_ON_OOM))
++			adjust_managed_page_count(page, 1);
+ 		put_page(page); /* balloon reference */
+ 	}
+ }
