@@ -82,20 +82,22 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  	struct xen_netbk_rx *netbk;
  
  	BUG_ON(skb->dev != dev);
-@@ -396,15 +400,24 @@ int netif_be_start_xmit(struct sk_buff *
- 	if (unlikely(!netif_schedulable(netif) || netbk_queue_full(netif)))
- 		goto drop;
+@@ -398,12 +402,21 @@ int netif_be_start_xmit(struct sk_buff *
  
--	/*
--	 * Copy the packet here if it's destined for a flipping interface
+ 	/*
+ 	 * Copy the packet here if it's destined for a flipping interface
 -	 * but isn't flippable (e.g. extra references to data).
 -	 * XXX For now we also copy skbuffs whose head crosses a page
 -	 * boundary, because netbk_gop_skb can't handle them.
--	 */
++	 * but isn't flippable (e.g. extra references to data; XXX for now,
++	 * copy always when flipping).
++	 * XXX For now we also copy skbuffs whose head exceeds PAGE_SIZE,
++	 * because netbk_gop_skb can't handle them.
+ 	 */
 -	if (!netif->copying_receiver ||
 -	    ((offset_in_page(skb->data) + skb_headlen(skb)) > PAGE_SIZE)) {
 +	netbk_rx_cb(skb)->coalesce = false;
-+	if (netif->copying_receiver) {
++	if (netif->copying_receiver && skb_headlen(skb) <= PAGE_SIZE) {
 +		slots = 1 + netbk_count_slots(skb_shinfo(skb), true);
 +		if (always_coalesce || slots >= XEN_NETIF_NR_SLOTS_MIN ||
 +		    offset_in_page(skb->data) + skb_headlen(skb) > PAGE_SIZE) {
@@ -104,18 +106,10 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
 +			slots = PFN_UP(skb->len);
 +		}
 +	} else {
-+		/*
-+		 * Copy the packet here if it's destined for a flipping
-+		 * interface but isn't flippable (e.g. extra references to
-+		 * data or head crossing a page boundary).
-+		 * XXX For now, copy always.
-+		 */
  		struct sk_buff *nskb = netbk_copy_skb(skb);
-+
  		if ( unlikely(nskb == NULL) )
  			goto drop;
- 		/* Copy only the header fields we use in this driver. */
-@@ -413,12 +426,11 @@ int netif_be_start_xmit(struct sk_buff *
+@@ -413,12 +427,11 @@ int netif_be_start_xmit(struct sk_buff *
  		dev_kfree_skb(skb);
  		skb = nskb;
  		netif->nr_copied_rx_skbs++;
@@ -130,7 +124,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  	netif->rx_req_cons_peek += netbk_rx_cb(skb)->nr_slots;
  	netif_get(netif);
  
-@@ -485,6 +497,79 @@ struct netrx_pending_operations {
+@@ -485,6 +498,79 @@ struct netrx_pending_operations {
  	struct netbk_rx_meta *meta;
  };
  
@@ -210,7 +204,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  /* Set up the grant operations for this fragment.  If it's a flipping
     interface, we also set up the unmap request from here. */
  static void netbk_gop_frag(netif_t *netif, struct netbk_rx_meta *meta,
-@@ -501,29 +586,12 @@ static void netbk_gop_frag(netif_t *neti
+@@ -501,29 +587,12 @@ static void netbk_gop_frag(netif_t *neti
  
  	req = RING_GET_REQUEST(&netif->rx, netif->rx.req_cons + i);
  	if (netif->copying_receiver) {
@@ -241,7 +235,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  		copy_gop->source.offset = offset;
  		copy_gop->dest.domid = netif->domid;
  		copy_gop->dest.offset = i ? meta->frag.size : 0;
-@@ -570,9 +638,42 @@ static unsigned int netbk_gop_skb(struct
+@@ -570,9 +639,42 @@ static unsigned int netbk_gop_skb(struct
  
  	head_meta = npo->meta + npo->meta_prod++;
  	head_meta->frag.page_offset = skb_shinfo(skb)->gso_type;
@@ -286,7 +280,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  
  	for (i = 0; i < nr_frags; i++, n++) {
  		const skb_frag_t *frag = skb_shinfo(skb)->frags + i;
-@@ -713,8 +814,8 @@ static unsigned int netbk_add_frag_respo
+@@ -713,8 +815,8 @@ static unsigned int netbk_add_frag_respo
  {
  	unsigned int i, n;
  
@@ -297,7 +291,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  			    ? 0 : XEN_NETRXF_more_data;
  
  		make_rx_response(netif, meta->id, status,
-@@ -846,7 +947,8 @@ static void net_rx_action(unsigned long
+@@ -846,7 +948,8 @@ static void net_rx_action(unsigned long
  		skb->dev->stats.tx_packets++;
  
  		id = netbk->meta[npo.meta_cons].id;
@@ -307,7 +301,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  
  		switch (skb->ip_summed) {
  		case CHECKSUM_PARTIAL: /* local packet? */
-@@ -863,7 +965,11 @@ static void net_rx_action(unsigned long
+@@ -863,7 +966,11 @@ static void net_rx_action(unsigned long
  		else
  			offset = offset_in_page(skb->data);
  		resp = make_rx_response(netif, id, status, offset,
@@ -320,7 +314,7 @@ TBD: perhaps avoid (when possible) to coalesce SKBs not originating from an exte
  
  		if (netbk->meta[npo.meta_cons].frag.size) {
  			struct netif_extra_info *gso =
-@@ -2108,6 +2214,14 @@ static int __init netback_init(void)
+@@ -2108,6 +2215,14 @@ static int __init netback_init(void)
  		max_tx_slots = XEN_NETIF_NR_SLOTS_MIN;
  	}
  
