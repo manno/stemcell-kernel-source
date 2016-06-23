@@ -1,7 +1,7 @@
 From: Takashi Iwai <tiwai@suse.de>
 Subject: xen: Linux 4.1.19
 Patch-mainline: Never, SUSE-Xen specific
-References: CVE-2016-2383 CVE-2016-2384 bsc#966684 bsc#966693 bsc#968018
+References: CVE-2016-2383 CVE-2016-2384 bsc#966684 bsc#966693 bsc#968018 bsc#973570
 
 Signed-off-by: Takashi Iwai <tiwai@suse.de>
 Automatically created from "patches.kernel.org/patch-4.1.18-19" by xen-port-patches.py
