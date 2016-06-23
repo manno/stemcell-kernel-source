@@ -2635,6 +2635,16 @@ Acked-by: jbeulich@suse.com
  		ring_ops = &ring_ops_pv;
  	else
  		ring_ops = &ring_ops_hvm;
+--- a/drivers/xen/xenbus/xenbus_dev.c
++++ b/drivers/xen/xenbus/xenbus_dev.c
+@@ -377,6 +377,7 @@ static int xenbus_dev_open(struct inode *inode,
+ 		return -ENOENT;
+ 
+ 	nonseekable_open(inode, filp);
++	filp->f_mode &= ~FMODE_ATOMIC_POS;
+ 
+ 	u = kzalloc(sizeof(*u), GFP_KERNEL);
+ 	if (u == NULL)
 --- a/include/xen/evtchn.h
 +++ b/include/xen/evtchn.h
 @@ -47,6 +47,7 @@
