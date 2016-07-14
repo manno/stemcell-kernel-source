@@ -1,0 +1,39 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: [PATCH] Revert "powerpc: Update TM user feature bits in
+ scan_features()"
+Patch-mainline: Never, just a temporary fix for 4.1.28
+
+This reverts commit f49eb503f0f9ab66874a81992b14249a1c59b6ad.
+
+The commit caused a build error.
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ arch/powerpc/kernel/prom.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
+index 28dbbb0d12c4..abe9cdc390a5 100644
+--- a/arch/powerpc/kernel/prom.c
++++ b/arch/powerpc/kernel/prom.c
+@@ -162,12 +162,11 @@ static struct ibm_pa_feature {
+ 	{0, MMU_FTR_CI_LARGE_PAGE, 0, 0,		1, 2, 0},
+ 	{CPU_FTR_REAL_LE, 0, PPC_FEATURE_TRUE_LE, 0, 5, 0, 0},
+ 	/*
+-	 * If the kernel doesn't support TM (ie CONFIG_PPC_TRANSACTIONAL_MEM=n),
+-	 * we don't want to turn on TM here, so we use the *_COMP versions
+-	 * which are 0 if the kernel doesn't support TM.
++	 * If the kernel doesn't support TM (ie. CONFIG_PPC_TRANSACTIONAL_MEM=n),
++	 * we don't want to turn on CPU_FTR_TM here, so we use CPU_FTR_TM_COMP
++	 * which is 0 if the kernel doesn't support TM.
+ 	 */
+-	{CPU_FTR_TM_COMP, 0, 0,
+-	 PPC_FEATURE2_HTM_COMP|PPC_FEATURE2_HTM_NOSC_COMP, 22, 0, 0},
++	{CPU_FTR_TM_COMP, 0, 0, 0,		22, 0, 0},
+ };
+ 
+ static void __init scan_features(unsigned long node, const unsigned char *ftrs,
+-- 
+2.9.1
+
