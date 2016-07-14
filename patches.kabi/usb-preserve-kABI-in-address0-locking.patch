@@ -56,14 +56,14 @@ Signed-off-by: Oliver Neukum <ONeukum@suse.com>
  		hcd->bandwidth_mutex = primary_hcd->bandwidth_mutex;
  		hcd->primary_hcd = primary_hcd;
  		primary_hcd->primary_hcd = primary_hcd;
-@@ -2533,7 +2523,6 @@ static void hcd_release(struct kref *kre
- 
- 	mutex_lock(&usb_port_peer_mutex);
- 	if (usb_hcd_is_primary_hcd(hcd)) {
+@@ -2537,7 +2527,6 @@ static void hcd_release(struct kref *kre
+ 		peer->shared_hcd = NULL;
+ 		peer->primary_hcd = NULL;
+ 	} else {
 -		kfree(hcd->address0_mutex);
  		kfree(hcd->bandwidth_mutex);
  	}
- 	if (hcd->shared_hcd) {
+ 	mutex_unlock(&usb_port_peer_mutex);
 --- a/drivers/usb/core/hub.c
 +++ b/drivers/usb/core/hub.c
 @@ -102,6 +102,8 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rws

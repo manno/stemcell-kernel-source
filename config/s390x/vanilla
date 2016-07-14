@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/s390 4.1.18 Kernel Configuration
+# Linux/s390 4.1.28 Kernel Configuration
 #
 CONFIG_MMU=y
 CONFIG_ZONE_DMA=y
@@ -1148,8 +1148,6 @@ CONFIG_ALLOW_DEV_COREDUMP=y
 # CONFIG_DEBUG_DEVRES is not set
 CONFIG_SYS_HYPERVISOR=y
 # CONFIG_GENERIC_CPU_DEVICES is not set
-CONFIG_REGMAP=y
-CONFIG_REGMAP_MMIO=y
 # CONFIG_DMA_SHARED_BUFFER is not set
 
 #
