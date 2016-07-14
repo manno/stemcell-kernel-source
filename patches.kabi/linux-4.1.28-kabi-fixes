@@ -1,0 +1,150 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: kABI fixes for 4.1.28
+Patch-mainline: Never, openSUSE Leap 42.1 only
+
+Most of the stuff is just to shift the new fields at the tail end
+gurad with __GENKSYMS__.  The dropped qdisc_tree_decrease_qlen() is
+reimplemented with a new function, and rpc_create_xprt() is
+re-exported.
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ drivers/usb/common/usb-otg-fsm.c |    4 +++-
+ include/linux/netdevice.h        |    2 ++
+ include/linux/usb/ehci_def.h     |    5 +++++
+ include/net/bonding.h            |    4 +++-
+ include/net/codel.h              |    4 +++-
+ include/net/sch_generic.h        |    1 +
+ net/sched/sch_api.c              |    7 +++++++
+ net/sunrpc/clnt.c                |    3 ++-
+ 8 files changed, 26 insertions(+), 4 deletions(-)
+
+--- a/include/linux/netdevice.h
++++ b/include/linux/netdevice.h
+@@ -265,7 +265,9 @@ struct header_ops {
+ 	void	(*cache_update)(struct hh_cache *hh,
+ 				const struct net_device *dev,
+ 				const unsigned char *haddr);
++#ifndef __GENKSYMS__
+ 	bool	(*validate)(const char *ll_header, unsigned int len);
++#endif
+ };
+ 
+ /* These flag bits are private to the generic network queueing
+--- a/include/linux/usb/ehci_def.h
++++ b/include/linux/usb/ehci_def.h
+@@ -180,11 +180,16 @@ struct ehci_regs {
+  * PORTSCx
+  */
+ 	/* HOSTPC: offset 0x84 */
++#ifdef __GENKSYMS__
++	u32		hostpc[1];
++	u32		reserved5[16];
++#else /* __GENKSYMS__ */
+ 	u32		hostpc[0];	/* HOSTPC extension */
+ #define HOSTPC_PHCD	(1<<22)		/* Phy clock disable */
+ #define HOSTPC_PSPD	(3<<25)		/* Port speed detection */
+ 
+ 	u32		reserved5[17];
++#endif /* __GENKSYMS__ */
+ 
+ 	/* USBMODE_EX: offset 0xc8 */
+ 	u32		usbmode_ex;	/* USB Device mode extension */
+--- a/include/net/bonding.h
++++ b/include/net/bonding.h
+@@ -211,7 +211,6 @@ struct bonding {
+ 	 * ALB mode (6) - to sync the use and modifications of its hash table
+ 	 */
+ 	spinlock_t mode_lock;
+-	spinlock_t stats_lock;
+ 	u8	 send_peer_notif;
+ 	u8       igmp_retrans;
+ #ifdef CONFIG_PROC_FS
+@@ -235,6 +234,9 @@ struct bonding {
+ 	struct	 dentry *debug_dir;
+ #endif /* CONFIG_DEBUG_FS */
+ 	struct rtnl_link_stats64 bond_stats;
++#ifndef __GENKSYMS__
++	spinlock_t stats_lock;
++#endif
+ };
+ 
+ #define bond_slave_get_rcu(dev) \
+--- a/include/net/codel.h
++++ b/include/net/codel.h
+@@ -166,8 +166,10 @@ struct codel_vars {
+ struct codel_stats {
+ 	u32		maxpacket;
+ 	u32		drop_count;
+-	u32		drop_len;
+ 	u32		ecn_mark;
++#ifndef __GENKSYMS__
++	u32		drop_len;
++#endif
+ };
+ 
+ static void codel_params_init(struct codel_params *params,
+--- a/include/net/sch_generic.h
++++ b/include/net/sch_generic.h
+@@ -395,6 +395,7 @@ struct Qdisc *dev_graft_qdisc(struct net
+ 			      struct Qdisc *qdisc);
+ void qdisc_reset(struct Qdisc *qdisc);
+ void qdisc_destroy(struct Qdisc *qdisc);
++void qdisc_tree_decrease_qlen(struct Qdisc *qdisc, unsigned int n);
+ void qdisc_tree_reduce_backlog(struct Qdisc *qdisc, unsigned int n,
+ 			       unsigned int len);
+ struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,
+--- a/net/sched/sch_api.c
++++ b/net/sched/sch_api.c
+@@ -782,6 +782,13 @@ void qdisc_tree_reduce_backlog(struct Qd
+ }
+ EXPORT_SYMBOL(qdisc_tree_reduce_backlog);
+ 
++/* Just for kABI compatibility */
++void qdisc_tree_decrease_qlen(struct Qdisc *sch, unsigned int n)
++{
++	qdisc_tree_reduce_backlog(sch, n, sch->qstats.backlog);
++}
++EXPORT_SYMBOL(qdisc_tree_decrease_qlen);
++
+ static void notify_and_destroy(struct net *net, struct sk_buff *skb,
+ 			       struct nlmsghdr *n, u32 clid,
+ 			       struct Qdisc *old, struct Qdisc *new)
+--- a/net/sunrpc/clnt.c
++++ b/net/sunrpc/clnt.c
+@@ -442,7 +442,7 @@ out_no_rpciod:
+ 	return ERR_PTR(err);
+ }
+ 
+-static struct rpc_clnt *rpc_create_xprt(struct rpc_create_args *args,
++struct rpc_clnt *rpc_create_xprt(struct rpc_create_args *args,
+ 					struct rpc_xprt *xprt)
+ {
+ 	struct rpc_clnt *clnt = NULL;
+@@ -474,6 +474,7 @@ static struct rpc_clnt *rpc_create_xprt(
+ 
+ 	return clnt;
+ }
++EXPORT_SYMBOL_GPL(rpc_create_xprt);
+ 
+ /**
+  * rpc_create - create an RPC client and transport with one call
+--- a/drivers/usb/common/usb-otg-fsm.c
++++ b/drivers/usb/common/usb-otg-fsm.c
+@@ -21,7 +21,6 @@
+  * 675 Mass Ave, Cambridge, MA 02139, USA.
+  */
+ 
+-#include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+ #include <linux/mutex.h>
+@@ -366,4 +365,7 @@ int otg_statemachine(struct otg_fsm *fsm
+ 	return state_changed;
+ }
+ EXPORT_SYMBOL_GPL(otg_statemachine);
++
++/* XXX moved here just to keep kABI XXX */
++#include <linux/module.h>
+ MODULE_LICENSE("GPL");
