@@ -1,0 +1,124 @@
+From: Michal Kubecek <mkubecek@suse.cz>
+Date: Mon, 18 Jul 2016 10:54:16 +0200
+Subject: netfilter: x_tables: fix 4.1 stable backport
+Patch-mainline: Never, stable-4.1 specific
+References: bsc#989176
+
+Stable-4.1 backport of Florian Westphal's CVE-2016-4997 fixes doesn't
+handle correctly the fact that 4.1 kernel is missing commit
+482cfc318559 ("netfilter: xtables: avoid percpu ruleset duplication").
+
+Add code fragments needed for pre-4.2 kernels.
+
+Signed-off-by: Michal Kubecek <mkubecek@suse.cz>
+---
+ net/ipv4/netfilter/arp_tables.c |  8 +++++++-
+ net/ipv4/netfilter/ip_tables.c  | 11 ++++++++---
+ net/ipv6/netfilter/ip6_tables.c | 12 +++++++++---
+ 3 files changed, 24 insertions(+), 7 deletions(-)
+
+diff --git a/net/ipv4/netfilter/arp_tables.c b/net/ipv4/netfilter/arp_tables.c
+index 2953ee9e5fa0..795dd2559dc4 100644
+--- a/net/ipv4/netfilter/arp_tables.c
++++ b/net/ipv4/netfilter/arp_tables.c
+@@ -366,8 +366,9 @@ static bool find_jump_target(const struct xt_table_info *t,
+ 			     const struct arpt_entry *target)
+ {
+ 	struct arpt_entry *iter;
++	void *loc_cpu_entry = t->entries[raw_smp_processor_id()];
+ 
+-	xt_entry_foreach(iter, t->entries, t->size) {
++	xt_entry_foreach(iter, loc_cpu_entry, t->size) {
+ 		 if (iter == target)
+ 			return true;
+ 	}
+@@ -1358,6 +1359,11 @@ static int translate_compat_table(struct xt_table_info **pinfo,
+ 	if (ret)
+ 		goto free_newinfo;
+ 
++	/* And one copy for every other CPU */
++	for_each_possible_cpu(i)
++		if (newinfo->entries[i] && newinfo->entries[i] != entry1)
++			memcpy(newinfo->entries[i], entry1, newinfo->size);
++
+ 	*pinfo = newinfo;
+ 	*pentry0 = entry1;
+ 	xt_free_table_info(info);
+diff --git a/net/ipv4/netfilter/ip_tables.c b/net/ipv4/netfilter/ip_tables.c
+index 3bcf28bf1525..30b5852750a4 100644
+--- a/net/ipv4/netfilter/ip_tables.c
++++ b/net/ipv4/netfilter/ip_tables.c
+@@ -442,8 +442,9 @@ static bool find_jump_target(const struct xt_table_info *t,
+ 			     const struct ipt_entry *target)
+ {
+ 	struct ipt_entry *iter;
++	void *loc_cpu_entry = t->entries[raw_smp_processor_id()];
+ 
+-	xt_entry_foreach(iter, t->entries, t->size) {
++	xt_entry_foreach(iter, loc_cpu_entry, t->size) {
+ 		 if (iter == target)
+ 			return true;
+ 	}
+@@ -1479,8 +1480,7 @@ check_compat_entry_size_and_hooks(struct compat_ipt_entry *e,
+ 	entry_offset = (void *)e - (void *)base;
+ 	j = 0;
+ 	xt_ematch_foreach(ematch, e) {
+-		ret = compat_find_calc_match(ematch, &e->ip, e->comefrom,
+-					     &off);
++		ret = compat_find_calc_match(ematch, &e->ip, e->comefrom, &off);
+ 		if (ret != 0)
+ 			goto release_matches;
+ 		++j;
+@@ -1635,6 +1635,11 @@ translate_compat_table(struct net *net,
+ 	if (ret)
+ 		goto free_newinfo;
+ 
++	/* And one copy for every other CPU */
++	for_each_possible_cpu(i)
++		if (newinfo->entries[i] && newinfo->entries[i] != entry1)
++			memcpy(newinfo->entries[i], entry1, newinfo->size);
++
+ 	*pinfo = newinfo;
+ 	*pentry0 = entry1;
+ 	xt_free_table_info(info);
+diff --git a/net/ipv6/netfilter/ip6_tables.c b/net/ipv6/netfilter/ip6_tables.c
+index 5254d76dfce8..52069be7eb35 100644
+--- a/net/ipv6/netfilter/ip6_tables.c
++++ b/net/ipv6/netfilter/ip6_tables.c
+@@ -455,8 +455,9 @@ static bool find_jump_target(const struct xt_table_info *t,
+ 			     const struct ip6t_entry *target)
+ {
+ 	struct ip6t_entry *iter;
++	void *loc_cpu_entry = t->entries[raw_smp_processor_id()];
+ 
+-	xt_entry_foreach(iter, t->entries, t->size) {
++	xt_entry_foreach(iter, loc_cpu_entry, t->size) {
+ 		 if (iter == target)
+ 			return true;
+ 	}
+@@ -1493,8 +1494,8 @@ check_compat_entry_size_and_hooks(struct compat_ip6t_entry *e,
+ 	entry_offset = (void *)e - (void *)base;
+ 	j = 0;
+ 	xt_ematch_foreach(ematch, e) {
+-		ret = compat_find_calc_match(ematch, &e->ipv6, e->comefrom,
+-					     &off);
++		ret = compat_find_calc_match(ematch,
++					     &e->ipv6, e->comefrom, &off);
+ 		if (ret != 0)
+ 			goto release_matches;
+ 		++j;
+@@ -1640,6 +1641,11 @@ translate_compat_table(struct net *net,
+ 	if (ret)
+ 		goto free_newinfo;
+ 
++	/* And one copy for every other CPU */
++	for_each_possible_cpu(i)
++		if (newinfo->entries[i] && newinfo->entries[i] != entry1)
++			memcpy(newinfo->entries[i], entry1, newinfo->size);
++
+ 	*pinfo = newinfo;
+ 	*pentry0 = entry1;
+ 	xt_free_table_info(info);
+-- 
+2.9.2
+
