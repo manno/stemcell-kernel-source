@@ -3897,13 +3897,10 @@ Acked-by: jbeulich@suse.com
  		transaction_start();
  
  	mutex_lock(&xs_state.request_mutex);
-@@ -250,17 +220,12 @@ void *xenbus_dev_request_and_reply(struc
+@@ -250,14 +220,12 @@ void *xenbus_dev_request_and_reply(struc
  
  	mutex_unlock(&xs_state.request_mutex);
  
--	if (IS_ERR(ret))
--		return ret;
--
 -	if ((msg->type == XS_TRANSACTION_END) ||
 -	    ((req_msg.type == XS_TRANSACTION_START) &&
 -	     (msg->type == XS_ERROR)))
@@ -3917,7 +3914,7 @@ Acked-by: jbeulich@suse.com
  
  /* Send message to xs, get kmalloc'ed reply.  ERR_PTR() on error. */
  static void *xs_talkv(struct xenbus_transaction t,
-@@ -311,8 +276,10 @@ static void *xs_talkv(struct xenbus_tran
+@@ -308,8 +276,10 @@ static void *xs_talkv(struct xenbus_tran
  	}
  
  	if (msg.type != type) {
@@ -3930,7 +3927,7 @@ Acked-by: jbeulich@suse.com
  		kfree(ret);
  		return ERR_PTR(-EINVAL);
  	}
-@@ -369,7 +336,7 @@ static char **split(char *strings, unsig
+@@ -366,7 +336,7 @@ static char **split(char *strings, unsig
  	char *p, **ret;
  
  	/* Count the strings. */
@@ -3939,7 +3936,7 @@ Acked-by: jbeulich@suse.com
  
  	/* Transfer to one big alloc for easy freeing. */
  	ret = kmalloc(*num * sizeof(char *) + len, GFP_NOIO | __GFP_HIGH);
-@@ -383,6 +350,7 @@ static char **split(char *strings, unsig
+@@ -380,6 +350,7 @@ static char **split(char *strings, unsig
  	strings = (char *)&ret[*num];
  	for (p = strings, *num = 0; p < strings + len; p += strlen(p) + 1)
  		ret[(*num)++] = p;
@@ -3947,7 +3944,7 @@ Acked-by: jbeulich@suse.com
  
  	return ret;
  }
-@@ -570,18 +538,21 @@ int xenbus_printf(struct xenbus_transact
+@@ -567,18 +538,21 @@ int xenbus_printf(struct xenbus_transact
  {
  	va_list ap;
  	int ret;
@@ -3976,7 +3973,7 @@ Acked-by: jbeulich@suse.com
  
  	return ret;
  }
-@@ -655,44 +626,22 @@ static struct xenbus_watch *find_watch(c
+@@ -652,44 +626,22 @@ static struct xenbus_watch *find_watch(c
  
  	return NULL;
  }
@@ -3993,12 +3990,12 @@ Acked-by: jbeulich@suse.com
 -
 -	base = xen_cpuid_base();
 -	cpuid(base + 1, &eax, &ebx, &ecx, &edx);
- 
+-
 -	if ((eax >> 16) < 4)
 -		return true;
 -#endif
 -	return false;
--
+ 
 -}
  static void xs_reset_watches(void)
  {
@@ -4026,7 +4023,7 @@ Acked-by: jbeulich@suse.com
  }
  
  /* Register callback to watch this node. */
-@@ -731,6 +680,8 @@ void unregister_xenbus_watch(struct xenb
+@@ -728,6 +680,8 @@ void unregister_xenbus_watch(struct xenb
  	char token[sizeof(watch) * 2 + 1];
  	int err;
  
@@ -4035,7 +4032,7 @@ Acked-by: jbeulich@suse.com
  	sprintf(token, "%lX", (long)watch);
  
  	down_read(&xs_state.watch_mutex);
-@@ -742,15 +693,12 @@ void unregister_xenbus_watch(struct xenb
+@@ -739,15 +693,12 @@ void unregister_xenbus_watch(struct xenb
  
  	err = xs_unwatch(watch->node, token);
  	if (err)
@@ -4054,7 +4051,7 @@ Acked-by: jbeulich@suse.com
  	/* Cancel pending watch events. */
  	spin_lock(&watch_events_lock);
  	list_for_each_entry_safe(msg, tmp, &watch_events, list) {
-@@ -762,8 +710,11 @@ void unregister_xenbus_watch(struct xenb
+@@ -759,8 +710,11 @@ void unregister_xenbus_watch(struct xenb
  	}
  	spin_unlock(&watch_events_lock);
  
@@ -4067,7 +4064,7 @@ Acked-by: jbeulich@suse.com
  }
  EXPORT_SYMBOL_GPL(unregister_xenbus_watch);
  
-@@ -780,8 +731,6 @@ void xs_resume(void)
+@@ -777,8 +731,6 @@ void xs_resume(void)
  	struct xenbus_watch *watch;
  	char token[sizeof(watch) * 2 + 1];
  
@@ -4076,7 +4073,7 @@ Acked-by: jbeulich@suse.com
  	mutex_unlock(&xs_state.response_mutex);
  	mutex_unlock(&xs_state.request_mutex);
  	transaction_resume();
-@@ -803,11 +752,30 @@ void xs_suspend_cancel(void)
+@@ -800,11 +752,30 @@ void xs_suspend_cancel(void)
  	mutex_unlock(&xs_state.transaction_mutex);
  }
  
@@ -4107,7 +4104,7 @@ Acked-by: jbeulich@suse.com
  	for (;;) {
  		wait_event_interruptible(watch_events_waitq,
  					 !list_empty(&watch_events));
-@@ -823,17 +791,29 @@ static int xenwatch_thread(void *unused)
+@@ -820,17 +791,29 @@ static int xenwatch_thread(void *unused)
  			list_del(ent);
  		spin_unlock(&watch_events_lock);
  
@@ -4146,7 +4143,7 @@ Acked-by: jbeulich@suse.com
  	}
  
  	return 0;
-@@ -933,10 +913,12 @@ static int xenbus_thread(void *unused)
+@@ -930,10 +913,12 @@ static int xenbus_thread(void *unused)
  {
  	int err;
  
@@ -4160,7 +4157,7 @@ Acked-by: jbeulich@suse.com
  		if (kthread_should_stop())
  			break;
  	}
-@@ -946,7 +928,6 @@ static int xenbus_thread(void *unused)
+@@ -943,7 +928,6 @@ static int xenbus_thread(void *unused)
  
  int xs_init(void)
  {
@@ -4168,7 +4165,7 @@ Acked-by: jbeulich@suse.com
  	struct task_struct *task;
  
  	INIT_LIST_HEAD(&xs_state.reply_list);
-@@ -960,11 +941,6 @@ int xs_init(void)
+@@ -957,11 +941,6 @@ int xs_init(void)
  	atomic_set(&xs_state.transaction_count, 0);
  	init_waitqueue_head(&xs_state.transaction_wq);
  
