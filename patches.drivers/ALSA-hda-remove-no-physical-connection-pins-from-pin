@@ -61,8 +61,8 @@ Signed-off-by: Takashi Iwai <tiwai@suse.de>
  
 --- a/sound/pci/hda/patch_realtek.c
 +++ b/sound/pci/hda/patch_realtek.c
-@@ -5658,57 +5658,20 @@ static const struct hda_model_fixup alc2
- 	{0x12, 0xb7a60130}, \
+@@ -5660,57 +5660,20 @@ static const struct hda_model_fixup alc2
+ #define ALC225_STANDARD_PINS \
  	{0x21, 0x04211020}
  
 -#define ALC255_STANDARD_PINS \
@@ -122,9 +122,9 @@ Signed-off-by: Takashi Iwai <tiwai@suse.de>
  
  static const struct snd_hda_pin_quirk alc269_pin_fixup_tbl[] = {
  	SND_HDA_PIN_QUIRK(0x10ec0225, 0x1028, "Dell", ALC225_FIXUP_DELL1_MIC_NO_PRESENCE,
-@@ -5718,353 +5681,179 @@ static const struct snd_hda_pin_quirk al
- 		ALC225_STANDARD_PINS,
- 		{0x14, 0x901701b0}),
+@@ -5734,353 +5697,179 @@ static const struct snd_hda_pin_quirk al
+ 		{0x12, 0xb7a60130},
+ 		{0x1b, 0x90170110}),
  	SND_HDA_PIN_QUIRK(0x10ec0255, 0x1028, "Dell", ALC255_FIXUP_DELL2_MIC_NO_PRESENCE,
 -		ALC255_STANDARD_PINS,
 -		{0x12, 0x40300000},
@@ -491,7 +491,7 @@ Signed-off-by: Takashi Iwai <tiwai@suse.de>
  		{0x21, 0x03211020}),
  	{}
  };
-@@ -6988,77 +6777,33 @@ static const struct hda_model_fixup alc6
+@@ -7004,77 +6793,33 @@ static const struct hda_model_fixup alc6
  
  static const struct snd_hda_pin_quirk alc662_pin_fixup_tbl[] = {
  	SND_HDA_PIN_QUIRK(0x10ec0662, 0x1028, "Dell", ALC662_FIXUP_DELL_MIC_NO_PRESENCE,
