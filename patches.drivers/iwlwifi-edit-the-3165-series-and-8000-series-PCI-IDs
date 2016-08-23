@@ -36,7 +36,7 @@ Acked-by: Takashi Iwai <tiwai@suse.de>
  
  /* 7265 Series */
  	{IWL_PCI_DEVICE(0x095A, 0x5010, iwl7265_2ac_cfg)},
-@@ -438,9 +440,8 @@ static const struct pci_device_id iwl_hw
+@@ -440,9 +442,8 @@ static const struct pci_device_id iwl_hw
  	{IWL_PCI_DEVICE(0x24F4, 0x0030, iwl8260_2ac_cfg)},
  	{IWL_PCI_DEVICE(0x24F4, 0x1030, iwl8260_2ac_cfg)},
  	{IWL_PCI_DEVICE(0x24F3, 0xC010, iwl8260_2ac_cfg)},
@@ -46,4 +46,4 @@ Acked-by: Takashi Iwai <tiwai@suse.de>
 -	{IWL_PCI_DEVICE(0x24F4, 0xD030, iwl8260_2ac_cfg)},
  	{IWL_PCI_DEVICE(0x24F3, 0xC050, iwl8260_2ac_cfg)},
  	{IWL_PCI_DEVICE(0x24F3, 0xD050, iwl8260_2ac_cfg)},
- 	{IWL_PCI_DEVICE(0x24F3, 0x8010, iwl8260_2ac_cfg)},
+ 	{IWL_PCI_DEVICE(0x24F3, 0xD0B0, iwl8260_2ac_cfg)},
