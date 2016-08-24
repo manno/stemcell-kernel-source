@@ -1,0 +1,25 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: Fix kABI breakage of serio in 4.1.31
+Patch-mainline: Never, openSUSE-42.1 only
+
+struct serio isn't embedded (except for a few Sparc input drivers),
+so it's safe to guard via GENKSYMS ifdef.
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ include/linux/serio.h |    2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/include/linux/serio.h
++++ b/include/linux/serio.h
+@@ -61,7 +61,9 @@ struct serio {
+ 	 * For use by PS/2 layer when several ports share hardware and
+ 	 * may get indigestion when exposed to concurrent access (i8042).
+ 	 */
++#ifndef __GENKSYMS__
+ 	struct mutex *ps2_cmd_mutex;
++#endif
+ };
+ #define to_serio_port(d)	container_of(d, struct serio, dev)
+ 
