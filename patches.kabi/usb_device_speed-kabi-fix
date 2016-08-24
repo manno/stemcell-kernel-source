@@ -1,0 +1,22 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: Fix kABI breakage in enum usb_device_speed
+Patch-mainline: Never, openSUSE-42.1 only
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ include/uapi/linux/usb/ch9.h |    2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/include/uapi/linux/usb/ch9.h
++++ b/include/uapi/linux/usb/ch9.h
+@@ -913,7 +913,9 @@ enum usb_device_speed {
+ 	USB_SPEED_HIGH,				/* usb 2.0 */
+ 	USB_SPEED_WIRELESS,			/* wireless (usb 2.5) */
+ 	USB_SPEED_SUPER,			/* usb 3.0 */
++#ifndef __GENKSYMS__
+ 	USB_SPEED_SUPER_PLUS,			/* usb 3.1 */
++#endif
+ };
+ 
+ 
