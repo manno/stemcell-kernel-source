@@ -138,8 +138,8 @@ Acked-by: jbeulich@suse.com
 +#endif
  }
  
- static void init_amd_bd(struct cpuinfo_x86 *c)
-@@ -833,6 +835,7 @@ static const struct cpu_dev amd_cpu_dev
+ #define MSR_AMD64_DE_CFG	0xC0011029
+@@ -845,6 +847,7 @@ static const struct cpu_dev amd_cpu_dev
  
  cpu_dev_register(amd_cpu_dev);
  
@@ -147,7 +147,7 @@ Acked-by: jbeulich@suse.com
  /*
   * AMD errata checking
   *
-@@ -896,6 +899,7 @@ static bool cpu_has_amd_erratum(struct c
+@@ -908,6 +911,7 @@ static bool cpu_has_amd_erratum(struct c
  
  	return false;
  }
@@ -1492,7 +1492,7 @@ Acked-by: jbeulich@suse.com
  	  a paravirtualized device provided by QEMU; it lets a virtual machine
 --- a/drivers/scsi/lpfc/lpfc_init.c
 +++ b/drivers/scsi/lpfc/lpfc_init.c
-@@ -8667,9 +8667,6 @@ lpfc_sli4_set_affinity(struct lpfc_hba *
+@@ -8668,9 +8668,6 @@ lpfc_sli4_set_affinity(struct lpfc_hba *
  	int max_phys_id, min_phys_id;
  	int num_io_channel, first_cpu, chan;
  	struct lpfc_vector_map_info *cpup;
@@ -1502,7 +1502,7 @@ Acked-by: jbeulich@suse.com
  	struct cpumask *mask;
  	uint8_t chann[LPFC_FCP_IO_CHAN_MAX+1];
  
-@@ -8691,8 +8688,8 @@ lpfc_sli4_set_affinity(struct lpfc_hba *
+@@ -8692,8 +8689,8 @@ lpfc_sli4_set_affinity(struct lpfc_hba *
  	/* Update CPU map with physical id and core id of each CPU */
  	cpup = phba->sli4_hba.cpu_map;
  	for (cpu = 0; cpu < phba->sli4_hba.num_present_cpu; cpu++) {
@@ -2266,7 +2266,7 @@ Acked-by: jbeulich@suse.com
  	 * if lock->owner is not set, the mutex owner may have just acquired
 --- a/kernel/time/timekeeping.c
 +++ b/kernel/time/timekeeping.c
-@@ -979,6 +979,10 @@ int timekeeping_inject_offset(struct tim
+@@ -982,6 +982,10 @@ int timekeeping_inject_offset(struct tim
  	tk_xtime_add(tk, &ts64);
  	tk_set_wall_to_mono(tk, timespec64_sub(tk->wall_to_monotonic, ts64));
  
