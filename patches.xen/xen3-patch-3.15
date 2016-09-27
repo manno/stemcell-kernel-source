@@ -2324,16 +2324,6 @@ Acked-by: jbeulich@suse.com
  		spin_lock(&xs_state.reply_lock);
  	}
  
-@@ -227,6 +268,9 @@ void *xenbus_dev_request_and_reply(struc
- 
- 	mutex_unlock(&xs_state.request_mutex);
- 
-+	if (IS_ERR(ret))
-+		return ret;
-+
- 	if ((msg->type == XS_TRANSACTION_END) ||
- 	    ((type == XS_TRANSACTION_START) && (msg->type == XS_ERROR)))
- 		transaction_end();
 --- a/include/xen/interface/physdev.h
 +++ b/include/xen/interface/physdev.h
 @@ -166,7 +166,12 @@ struct physdev_map_pirq {
