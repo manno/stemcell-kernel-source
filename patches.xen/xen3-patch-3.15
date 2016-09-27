@@ -485,7 +485,7 @@ Acked-by: jbeulich@suse.com
  #ifdef CONFIG_SMP
  static void flush_ldt(void *current_mm)
  {
-@@ -234,6 +236,17 @@ static int write_ldt(void __user *ptr, u
+@@ -238,6 +240,17 @@ static int write_ldt(void __user *ptr, u
  		}
  	}
  
@@ -2200,7 +2200,7 @@ Acked-by: jbeulich@suse.com
  #define INVALID_PENDING_IDX 0xffff
 --- a/drivers/xen/netfront/netfront.c
 +++ b/drivers/xen/netfront/netfront.c
-@@ -1117,7 +1117,7 @@ static int network_start_xmit(struct sk_
+@@ -1118,7 +1118,7 @@ static int network_start_xmit(struct sk_
  
   drop:
  	dev->stats.tx_dropped++;
@@ -2209,7 +2209,7 @@ Acked-by: jbeulich@suse.com
  	return NETDEV_TX_OK;
  }
  
-@@ -1763,10 +1763,10 @@ static struct rtnl_link_stats64 *xennet_
+@@ -1764,10 +1764,10 @@ static struct rtnl_link_stats64 *xennet_
  		unsigned int start;
  
  		do {
@@ -2222,7 +2222,7 @@ Acked-by: jbeulich@suse.com
  
  		tot->rx_packets += packets;
  		tot->rx_bytes   += bytes;
-@@ -1774,10 +1774,10 @@ static struct rtnl_link_stats64 *xennet_
+@@ -1775,10 +1775,10 @@ static struct rtnl_link_stats64 *xennet_
  		stats = per_cpu_ptr(np->tx_stats, cpu);
  
  		do {
@@ -2235,7 +2235,7 @@ Acked-by: jbeulich@suse.com
  
  		tot->tx_packets += packets;
  		tot->tx_bytes   += bytes;
-@@ -2202,16 +2202,12 @@ static struct net_device *create_netdev(
+@@ -2203,16 +2203,12 @@ static struct net_device *create_netdev(
  	np->rx_refill_timer.function = rx_refill_timeout;
  
  	err = -ENOMEM;
@@ -2331,7 +2331,7 @@ Acked-by: jbeulich@suse.com
 +	if (IS_ERR(ret))
 +		return ret;
 +
- 	if ((type == XS_TRANSACTION_END) ||
+ 	if ((msg->type == XS_TRANSACTION_END) ||
  	    ((type == XS_TRANSACTION_START) && (msg->type == XS_ERROR)))
  		transaction_end();
 --- a/include/xen/interface/physdev.h
