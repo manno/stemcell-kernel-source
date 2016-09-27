@@ -1,0 +1,20 @@
+From: jbeulich@suse.com
+Subject: xenbus: don't bail early from xenbus_dev_request_and_reply()
+Patch-mainline: Never, SUSE-Xen specific
+References: luckily none so far
+
+This should have been done together with the xen3-fixup-xen adjustment
+when the tree got updated to 4.1.29.
+
+--- a/drivers/xen/xenbus/xenbus_xs.c
++++ b/drivers/xen/xenbus/xenbus_xs.c
+@@ -268,9 +268,6 @@ void *xenbus_dev_request_and_reply(struc
+ 
+ 	mutex_unlock(&xs_state.request_mutex);
+ 
+-	if (IS_ERR(ret))
+-		return ret;
+-
+ 	if ((msg->type == XS_TRANSACTION_END) ||
+ 	    ((type == XS_TRANSACTION_START) && (msg->type == XS_ERROR)))
+ 		transaction_end();
