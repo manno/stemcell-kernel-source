@@ -5737,6 +5737,22 @@ Acked-by: jbeulich@suse.com
  }
  EXPORT_SYMBOL_GPL(gnttab_reset_grant_page);
  
+--- a/drivers/xen/netfront/netfront.c
++++ b/drivers/xen/netfront/netfront.c
+@@ -1007,9 +1007,10 @@ static int network_start_xmit(struct sk_
+ 
+ 	slots = PFN_UP(offset + len) + xennet_count_skb_frag_slots(skb);
+ 	if (unlikely(slots > MAX_SKB_FRAGS + 1)) {
+-		net_alert_ratelimited("xennet: skb rides the rocket: %u slots\n",
+-				      slots);
+-		goto drop;
++		net_dbg_ratelimited("xennet: skb rides the rocket: %u slots, %u bytes\n",
++				    slots, skb->len);
++		if (skb_linearize(skb))
++			goto drop;
+ 	}
+ 
+ 	spin_lock_irqsave(&np->tx_lock, flags);
 --- a/drivers/xen/pcifront/pci_op.c
 +++ b/drivers/xen/pcifront/pci_op.c
 @@ -364,14 +364,16 @@ void pci_frontend_disable_msix(struct pc
