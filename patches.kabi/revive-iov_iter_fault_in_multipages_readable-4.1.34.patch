@@ -1,0 +1,29 @@
+From: Takashi Iwai <tiwai@suse.de>
+Subject: Revive iov_iter_fault_in_multipages_readable() for 4.1.34
+Patch-mainline: Never, only for openSUSE-42.1
+
+iov_iter_fault_in_multipages_readable() was dropped in 4.1.34 stable,
+replaced by iov_iter_fault_in_readable().  For keeping kABI, just
+provide the deleted function while keeping the new macro as is.
+
+Signed-off-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ lib/iov_iter.c |    9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -797,3 +797,12 @@ int import_single_range(int rw, void __u
+ 	iov_iter_init(i, rw, iov, 1, len);
+ 	return 0;
+ }
++
++/* XXX only for kABI compatibility */
++#undef iov_iter_fault_in_multipages_readable
++int iov_iter_fault_in_multipages_readable(struct iov_iter *i, size_t bytes)
++{
++	return iov_iter_fault_in_readable(i, bytes);
++}
++EXPORT_SYMBOL(iov_iter_fault_in_multipages_readable);
++
