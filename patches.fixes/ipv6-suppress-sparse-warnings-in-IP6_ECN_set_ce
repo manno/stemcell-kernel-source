@@ -1,0 +1,35 @@
+From c15c0ab12fd62f2b19181d05c62d24bc9fa55a42 Mon Sep 17 00:00:00 2001
+From: Johannes Berg <johannes.berg@intel.com>
+Date: Fri, 12 Aug 2016 07:48:21 +0200
+Subject: [PATCH] ipv6: suppress sparse warnings in IP6_ECN_set_ce()
+Git-commit: c15c0ab12fd62f2b19181d05c62d24bc9fa55a42
+Patch-mainline: 4.8-rc3
+References: bsc#1005101
+
+Pass the correct type __wsum to csum_sub() and csum_add(). This doesn't
+really change anything since __wsum really *is* __be32, but removes the
+address space warnings from sparse.
+
+Cc: Eric Dumazet <edumazet@google.com>
+Fixes: 34ae6a1aa054 ("ipv6: update skb->csum when CE mark is propagated")
+Signed-off-by: Johannes Berg <johannes.berg@intel.com>
+Acked-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+Acked-by: Takashi Iwai <tiwai@suse.de>
+
+---
+ include/net/inet_ecn.h |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/include/net/inet_ecn.h
++++ b/include/net/inet_ecn.h
+@@ -128,7 +128,8 @@ static inline int IP6_ECN_set_ce(struct
+ 	to = from | htonl(INET_ECN_CE << 20);
+ 	*(__be32 *)iph = to;
+ 	if (skb->ip_summed == CHECKSUM_COMPLETE)
+-		skb->csum = csum_add(csum_sub(skb->csum, from), to);
++		skb->csum = csum_add(csum_sub(skb->csum, (__force __wsum)from),
++				     (__force __wsum)to);
+ 	return 1;
+ }
+ 
