@@ -1,0 +1,58 @@
+git clone kernel-source
+cd kernel-source
+wget http://download.opensuse.org/repositories/openSUSE:/Leap:/42.1:/Update/ports/src/kernel-source-4.1.34-33.1.src.rpm 
+rpm -i -v kernel-source-4.1.35-15.1.g1672a2f.src.rpm
+cp ~/rpmbuild/SOURCES/linux-4.1.tar.xz .
+
+. ./scripts/install-git-hooks
+export SCRATCH_AREA=tmp
+
+# Extract kernel to scratch area
+scripts/sequence-patch.sh
+
+# # Test compile
+# cp config/x86_64/default $SCRATCH_AREA/current/.config
+# pushd $SCRATCH_AREA
+#   make oldconfig
+#   make
+# popd
+
+# AUFS - update configs
+rsync -Pa aufs/linux-4.1/ tmp/current/
+pushd $SCRATCH_AREA/current
+  patches/scripts/run_oldconfig.sh
+popd
+
+# Create kernel-source directory
+scripts/tar-up.sh
+
+# Local build
+touch kernel-source/IGNORE-KABI-BADNESS
+sed -i.bak 's/Release:.*0$/Release: 91/' kernel-source/*spec
+# TODO remove Requires: -pv and -xen from kernel-source/kernel-syms.spec
+
+mkdir rpmbuild
+scripts/osc_wrapper kernel-source/kernel-default.spec
+find /var/tmp/build-root/standard-x86_64/home/abuild/rpmbuild/ -name \*.rpm -print0 | xargs -0 cp -t ~/co/github/kernel-source/rpmbuild -v
+
+scripts/osc_wrapper kernel-source/kernel-syms.spec
+find /var/tmp/build-root/standard-x86_64/home/abuild/rpmbuild/ -name \*.rpm -print0 | xargs -0 cp -t ~/co/github/kernel-source/rpmbuild -v
+
+scripts/osc_wrapper kernel-source/kernel-source.spec
+find /var/tmp/build-root/standard-x86_64/home/abuild/rpmbuild/ -name \*.rpm -print0 | xargs -0 cp -t ~/co/github/kernel-source/rpmbuild -v
+
+
+# OBS build
+sudo zypper in obs-service-format_spec_file obs-service-source_validator obs-service-download_files python-m2crypto perl-XML-Writer perl-Config-IniFiles
+scripts/osc_wrapper upload home:mmanno:stemcells 
+
+
+# OSC
+osc build -p /home/mm/co/github/kernel-source/rpmbuild -x vim -x kernel-default -x strace -x ltrace -x post-build-checks
+
+chroot
+rpmbuild -ba --define '_srcdefattr (-,root,root)' --nosignature /home/abuild/rpmbuild/SOURCES/xen.spec
+su abuild
+strace -o strace.log -eopen -f rpmbuild -ba --define '_srcdefattr (-,root,root)' --nosignature /home/abuild/rpmbuild/SOURCES/xen.spec
+make -s -C /usr/src/linux-obj/x86_64/default kernelrelease
+
