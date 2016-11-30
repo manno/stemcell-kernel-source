@@ -108,7 +108,6 @@ Source112:      patches.trace.tar.bz2
 Source113:      patches.kabi.tar.bz2
 Source120:      kabi.tar.bz2
 Source121:      sysctl.tar.bz2
-Source130:      aufs.tar.bz2
 Source131:      patches.aufs.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch

@@ -366,15 +366,6 @@ if test -d kabi; then
     do_archive $build_dir/kabi.tar.bz2 kabi
 fi
 
-if test -d aufs; then
-    echo "aufs.tar.bz2"
-    (
-      pushd aufs
-      tar cfj ../$build_dir/aufs.tar.bz2 *
-      popd
-    )
-fi
-
 if test -d sysctl && \
 	grep -q '^Source.*\<sysctl\.tar\.bz2' "$build_dir/kernel-source.spec.in"
 then
